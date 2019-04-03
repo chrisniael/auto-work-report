@@ -13,17 +13,13 @@
 * <email> ：邮箱
 * <passwd> ：密码
 
-## 下载脚本
+## Linux 定时事件配置
 
 ```bash
 git clone http://gitlab.corp.sdo.com/shenyu.tommy/auto-work-report.git
 cp auto-work-report/auto-work-report.sh /usr/local/bin/
 chmod a+x /usr/local/bin/auto-work-report.sh
-```
 
-## Linux 定时事件配置
-
-```bash
 su -
 crontab -e
 ```
