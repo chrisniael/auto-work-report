@@ -132,7 +132,7 @@ then
   exit 1
 fi
 
-write_report $cookie_file $date_str $today_report_content
+write_report $cookie_file $date_str "$today_report_content"
 if [ $? -eq 0 ]
 then
   echo "[info] writ work report success, date=$date_str, content=$today_report_content"
