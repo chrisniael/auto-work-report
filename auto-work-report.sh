@@ -5,30 +5,85 @@ PASSWD=sy.123
 # get today report
 # if not exist then post
 
+function login()
+{
+  local cookie_file=$1
+  local email=$2
+  local passwd=$3
+
+  # Open login page
+  local csrf_token=$(curl -s --cookie-jar $cookie_file --request GET \
+    --url http://61.152.101.39/login | grep "csrf-token" \
+    | awk -F '"' '{print $4}')
+
+  # Request login
+  curl -s -b $cookie_file --cookie-jar $cookie_file --request POST \
+    --url http://61.152.101.39/login \
+    --header 'Content-Type: application/x-www-form-urlencoded' \
+    --data "email=${email}&password=${passwd}&_token=${csrf_token}" \
+    | grep "home" > /dev/null
+
+  if [ $? -ne 0 ]
+  then
+    return 1
+  fi
+
+  return 0
+}
+
+# Get someday's report content
+function get_someday_report()
+{
+  local cookie_file=$1
+  local date_str=$2
+
+  local get_res=$(curl -s -b $cookie_file --cookie-jar $cookie_file \
+    --request GET \
+    --url http://61.152.101.39/home?day=${date_str} \
+    | grep "内容")
+
+  get_res=${get_res#*内容\">}
+  local today_report_content=$(echo ${get_res%</textarea>} | awk '{$1=$1;print}')
+  echo $today_report_content
+  return 0
+}
+
+function write_report()
+{
+  local cookie_file=$1
+  local date_str=$2
+  local today_report_content=$3
+
+  # Visit home page
+  csrf_token=$(curl -s -b $cookie_file --cookie-jar $cookie_file \
+    --request GET \
+    --url http://61.152.101.39/home | grep "csrf-token" \
+    | awk -F '"' '{print $4}')
+
+  echo "[trace] csrf_token=$csrf_token"
+
+  # Post report
+  curl -s -b $cookie_file --cookie-jar $cookie_file --request POST \
+    --url http://61.152.101.39/service/note/save \
+    --header "X-CSRF-TOKEN: ${csrf_token}" \
+    --header 'Content-Type: application/x-www-form-urlencoded' \
+    --data "day=${date_str}&content=${today_report_content}" | grep "return_message\":\"success" > /dev/null
+  return 0
+}
+
+
 cookie_file=$(mktemp)
 echo "[info] temp file, name=$cookie_file"
 
-# Open login page
-csrf_token=$(curl -s --cookie-jar $cookie_file --request GET \
-  --url http://61.152.101.39/login | grep "csrf-token" \
-  | awk -F '"' '{print $4}')
-
-echo "[trace] csrf_token=$csrf_token"
-
-# Request login
-curl -s -b $cookie_file --cookie-jar $cookie_file --request POST \
-  --url http://61.152.101.39/login \
-  --header 'Content-Type: application/x-www-form-urlencoded' \
-  --data "email=${EMAIL}&password=${PASSWD}&_token=${csrf_token}" \
-  | grep "home" > /dev/null
-
-if [ $? -ne 0 ]
+login $cookie_file $EMAIL $PASSWD
+login_ret_code=$?
+if [ $login_ret_code -ne 0 ]
 then
   echo "[error] login failed!"
-  exit 1
+  exit $login_ret_code
+else
+  echo "[info] login success."
 fi
-
-echo "[info] login success."
 
 # Get today date 
 date_str=$(date +%Y-%m-%d)
@@ -44,10 +99,7 @@ then
 fi
 
 # Get today report content
-get_res=$(curl -s -b $cookie_file --cookie-jar $cookie_file --request GET \
-  --url http://61.152.101.39/home?day=${date_str} | grep "内容")
-get_res=${get_res#*内容\">}
-today_report_content=$(echo ${get_res%</textarea>} | awk '{$1=$1;print}')
+today_report_content=$(get_someday_report $cookie_file $date_str)
 echo "[info] today report, date=$date_str, content=$today_report_content, size=${#today_report_content}"
 
 if [ ${#today_report_content} -ge 0 ]
@@ -57,17 +109,15 @@ then
 fi
 
 # Get report content in the past
-today_report_content="11"
+today_report_content=
 yesterday_date_str=$date_str
 for i in {1..7}
 do
   yesterday_timestamp=$(date +%s -d "${yesterday_date_str}")
   yesterday_timestamp=$((yesterday_timestamp-24*60*60))
   yesterday_date_str=$(date +%Y-%m-%d -d @${yesterday_timestamp})
-  get_res=$(curl -s -b $cookie_file --cookie-jar $cookie_file --request GET \
-    --url http://61.152.101.39/home?day=${yesterday_date_str} | grep "内容")
-  get_res=${get_res#*内容\">}
-  past_report_content=$(echo ${get_res%</textarea>} | awk '{$1=$1;print}')
+
+  past_report_content=$(get_someday_report $cookie_file $yesterday_date_str)
   if [ ${#past_report_content} -ge 0 ]
   then
     echo "[info] find past report, date_str=${yesterday_date_str}, content=$past_report_content, size=${#past_report_content}"
@@ -76,21 +126,13 @@ do
   fi
 done
 
-# Visit home page
-csrf_token=$(curl -s -b $cookie_file --cookie-jar $cookie_file \
-  --request GET \
-  --url http://61.152.101.39/home | grep "csrf-token" \
-  | awk -F '"' '{print $4}')
+if [ -z "$today_report_content" ]
+then
+  echo "[error] could not find previous work report, date=$date_str"
+  exit 1
+fi
 
-echo "[trace] csrf_token=$csrf_token"
-
-# Post report
-curl -s -b $cookie_file --cookie-jar $cookie_file --request POST \
-  --url http://61.152.101.39/service/note/save \
-  --header "X-CSRF-TOKEN: ${csrf_token}" \
-  --header 'Content-Type: application/x-www-form-urlencoded' \
-  --data "day=${date_str}&content=${today_report_content}" | grep "return_message\":\"success" > /dev/null
-
+write_report $cookie_file $date_str $today_report_content
 if [ $? -eq 0 ]
 then
   echo "[info] writ work report success, date=$date_str, content=$today_report_content"
