@@ -1,3 +1,4 @@
+URL=http://61.152.101.39
 EMAIL=shenyu.tommy@shandagames.com
 PASSWD=sy.123
 
@@ -7,18 +8,19 @@ PASSWD=sy.123
 
 function login()
 {
-  local cookie_file=$1
-  local email=$2
-  local passwd=$3
+  local url=$1
+  local cookie_file=$2
+  local email=$3
+  local passwd=$4
 
   # Open login page
   local csrf_token=$(curl -s --cookie-jar $cookie_file --request GET \
-    --url http://61.152.101.39/login | grep "csrf-token" \
+    --url ${url}/login | grep "csrf-token" \
     | awk -F '"' '{print $4}')
 
   # Request login
   curl -s -b $cookie_file --cookie-jar $cookie_file --request POST \
-    --url http://61.152.101.39/login \
+    --url ${url}/login \
     --header 'Content-Type: application/x-www-form-urlencoded' \
     --data "email=${email}&password=${passwd}&_token=${csrf_token}" \
     | grep "home" > /dev/null
@@ -34,12 +36,13 @@ function login()
 # Get someday's report content
 function get_someday_report()
 {
-  local cookie_file=$1
-  local date_str=$2
+  local url=$1
+  local cookie_file=$2
+  local date_str=$3
 
   local get_res=$(curl -s -b $cookie_file --cookie-jar $cookie_file \
     --request GET \
-    --url http://61.152.101.39/home?day=${date_str} \
+    --url ${url}/home?day=${date_str} \
     | grep "内容")
 
   get_res=${get_res#*内容\">}
@@ -50,21 +53,22 @@ function get_someday_report()
 
 function write_report()
 {
-  local cookie_file=$1
-  local date_str=$2
-  local today_report_content=$3
+  local url=$1
+  local cookie_file=$2
+  local date_str=$3
+  local today_report_content=$4
 
   # Visit home page
   csrf_token=$(curl -s -b $cookie_file --cookie-jar $cookie_file \
     --request GET \
-    --url http://61.152.101.39/home | grep "csrf-token" \
+    --url ${url}/home | grep "csrf-token" \
     | awk -F '"' '{print $4}')
 
   echo "[trace] csrf_token=$csrf_token"
 
   # Post report
   curl -s -b $cookie_file --cookie-jar $cookie_file --request POST \
-    --url http://61.152.101.39/service/note/save \
+    --url ${url}/service/note/save \
     --header "X-CSRF-TOKEN: ${csrf_token}" \
     --header 'Content-Type: application/x-www-form-urlencoded' \
     --data "day=${date_str}&content=${today_report_content}" | grep "return_message\":\"success" > /dev/null
@@ -75,7 +79,7 @@ function write_report()
 cookie_file=$(mktemp)
 echo "[info] temp file, name=$cookie_file"
 
-login $cookie_file $EMAIL $PASSWD
+login $URL $cookie_file $EMAIL $PASSWD
 login_ret_code=$?
 if [ $login_ret_code -ne 0 ]
 then
@@ -99,7 +103,7 @@ then
 fi
 
 # Get today report content
-today_report_content=$(get_someday_report $cookie_file $date_str)
+today_report_content=$(get_someday_report $URL $cookie_file $date_str)
 echo "[info] today report, date=$date_str, content=$today_report_content, size=${#today_report_content}"
 
 if [ ${#today_report_content} -ge 0 ]
@@ -117,7 +121,7 @@ do
   yesterday_timestamp=$((yesterday_timestamp-24*60*60))
   yesterday_date_str=$(date +%Y-%m-%d -d @${yesterday_timestamp})
 
-  past_report_content=$(get_someday_report $cookie_file $yesterday_date_str)
+  past_report_content=$(get_someday_report $URL $cookie_file $yesterday_date_str)
   if [ ${#past_report_content} -ge 0 ]
   then
     echo "[info] find past report, date_str=${yesterday_date_str}, content=$past_report_content, size=${#past_report_content}"
@@ -132,7 +136,7 @@ then
   exit 1
 fi
 
-write_report $cookie_file $date_str "$today_report_content"
+write_report $URL $cookie_file $date_str "$today_report_content"
 if [ $? -eq 0 ]
 then
   echo "[info] writ work report success, date=$date_str, content=$today_report_content"
