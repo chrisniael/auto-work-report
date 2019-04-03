@@ -1,6 +1,24 @@
-URL=http://61.152.101.39
-EMAIL=shenyu.tommy@shandagames.com
-PASSWD=sy.123
+URL=$1
+EMAIL=$2
+PASSWD=$3
+
+function usage_info() {
+  echo "./auto-work-report.sh <url> <email> <passwd>"
+}
+
+if [ -z "$URL" ] || [ -z "$EMAIL" ] || [ -z "$PASSWD" ]
+then
+  usage_info
+  exit 1
+fi
+
+# 去除 URL 最后一个字符 /
+URL_LAST_CHAR=${URL:0-1}
+if [ "$URL_LAST_CHAR" == "/" ] 
+then
+  URL=${URL%?}
+fi
+
 
 # login
 # get today report
