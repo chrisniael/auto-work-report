@@ -27,5 +27,5 @@ crontab -e
 这里配置为每天晚上7点检查一遍
 
 ```cfg
-0 7 * * * /usr/local/bin/auto-work-report.sh <url> <email> <passwd>
+0 19 * * * /usr/local/bin/auto-work-report.sh <url> <email> <passwd>
 ```

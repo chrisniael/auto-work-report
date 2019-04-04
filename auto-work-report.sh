@@ -1,3 +1,4 @@
+#!/bin/bash
 URL=$1
 EMAIL=$2
 PASSWD=$3
