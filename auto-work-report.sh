@@ -103,6 +103,8 @@ login_ret_code=$?
 if [ $login_ret_code -ne 0 ]
 then
   echo "[error] login failed!"
+  # Remove temp file
+  rm -rf $cookie_file
   exit $login_ret_code
 else
   echo "[info] login success."
@@ -118,6 +120,8 @@ echo "[info] today, date=$date_str, weekday_n=$weekday_n"
 if [ $weekday_n -ge 6 ]
 then
   echo "[info] today is weekend, don't need work report."
+  # Remove temp file
+  rm -rf $cookie_file
   exit 0
 fi
 
@@ -125,9 +129,11 @@ fi
 today_report_content=$(get_someday_report $URL $cookie_file $date_str)
 echo "[info] today report, date=$date_str, content=$today_report_content, size=${#today_report_content}"
 
-if [ ${#today_report_content} -ge 0 ]
+if [ ${#today_report_content} -gt 0 ]
 then
   echo "[warning] today has written the work report, don't need report again."
+  # Remove temp file
+  rm -rf $cookie_file
   exit 0
 fi
 
@@ -152,6 +158,8 @@ done
 if [ -z "$today_report_content" ]
 then
   echo "[error] could not find previous work report, date=$date_str"
+  # Remove temp file
+  rm -rf $cookie_file
   exit 1
 fi
 
