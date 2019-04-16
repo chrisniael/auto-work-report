@@ -147,7 +147,7 @@ do
   yesterday_date_str=$(date +%Y-%m-%d -d @${yesterday_timestamp})
 
   past_report_content=$(get_someday_report $URL $cookie_file $yesterday_date_str)
-  if [ ${#past_report_content} -ge 0 ]
+  if [ ${#past_report_content} -gt 0 ]
   then
     echo "[info] find past report, date_str=${yesterday_date_str}, content=$past_report_content, size=${#past_report_content}"
     today_report_content=${past_report_content}
