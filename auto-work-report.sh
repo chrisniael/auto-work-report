@@ -33,12 +33,12 @@ function login()
   local passwd=$4
 
   # Open login page
-  local csrf_token=$(curl -s --cookie-jar $cookie_file --request GET \
+  local csrf_token=$(curl -k -s --cookie-jar $cookie_file --request GET \
     --url ${url}/login | grep "csrf-token" \
     | awk -F '"' '{print $4}')
 
   # Request login
-  curl -s -b $cookie_file --cookie-jar $cookie_file --request POST \
+  curl -k -s -b $cookie_file --cookie-jar $cookie_file --request POST \
     --url ${url}/login \
     --header 'Content-Type: application/x-www-form-urlencoded' \
     --data "email=${email}&password=${passwd}&_token=${csrf_token}" \
@@ -59,7 +59,7 @@ function get_someday_report()
   local cookie_file=$2
   local date_str=$3
 
-  local get_res=$(curl -s -b $cookie_file --cookie-jar $cookie_file \
+  local get_res=$(curl -k -s -b $cookie_file --cookie-jar $cookie_file \
     --request GET \
     --url ${url}/home?day=${date_str} \
     | grep "内容")
@@ -78,7 +78,7 @@ function write_report()
   local today_report_content=$4
 
   # Visit home page
-  csrf_token=$(curl -s -b $cookie_file --cookie-jar $cookie_file \
+  csrf_token=$(curl -k -s -b $cookie_file --cookie-jar $cookie_file \
     --request GET \
     --url ${url}/home | grep "csrf-token" \
     | awk -F '"' '{print $4}')
@@ -86,7 +86,7 @@ function write_report()
   echo "[trace] csrf_token=$csrf_token"
 
   # Post report
-  curl -s -b $cookie_file --cookie-jar $cookie_file --request POST \
+  curl -k -s -b $cookie_file --cookie-jar $cookie_file --request POST \
     --url ${url}/service/note/save \
     --header "X-CSRF-TOKEN: ${csrf_token}" \
     --header 'Content-Type: application/x-www-form-urlencoded' \

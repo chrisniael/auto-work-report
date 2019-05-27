@@ -9,7 +9,7 @@
 ```bash
 ./auto-work-report.sh <url> <email> <passwd>
 ```
-* url ：日报系统地址，目前是 http://61.152.101.39
+* url ：日报系统地址，目前是 https://daily.corp.sdo.com
 * email ：邮箱
 * passwd ：密码
 
